@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    span {
+        color: green;
+        padding: 0 4px;
+    }
+
+    span.transposed{
+        color: orange;
+    }
+
+    #songContainer{
+        background-color: white;
+        width: 80%;
+        padding: 20px;
+        border: 2px solid rgb(200,200,200);
+        margin: 20px 0;
+        height: 200px;
+    }
+
+    #songContainer p{
+        color: blue;
+    }
+
+    form{
+    }
+
+    form input[type=text]{
+        padding: 12px 15px;
+        width: 40%;
+    }
+
+    input[type=submit]{
+        padding: 12px 15px;
+        background-color: rgb(20,200,100);
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btns{
+        display: flex;
+        gap: 20px;
+        margin: 10px 0;
+    }
+
+    .btns button{
+        border: none;
+        padding: 12px 20px;
+        color: white;
+        cursor: pointer;
+    }
+
+    #tUp{
+        background-color: rgb(20, 100, 200);
+    }
+
+    #tDown{
+        background-color: rgb(200, 20, 20);
+    }
+
+    body{
+        background: rgb(240, 240, 240);
+        font-family: monospace;
+    }
+</style>
+
+<body>
+    <div id="songContainer">
+
+    </div>
+
+    <form action="">
+        <input type="text" name="" id="title">
+        <input type="submit" value="Submit Request">
+    </form>
+
+    <div class="btns">
+        <button id="tUp">Transpose Up</button>
+        <button id="tDown">Transpose Down</button>
+    </div>
+
+    <div id="text">
+
+    </div>
+
+    <script>
+        let nOfTranspose = 1;
+
+        const runService = (title) => {
+            fetch('http://localhost:3000/song', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: title
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    let songLines = data.songLines;
+                    let songHTML = '';
+                    let text = '';
+                    song = songLines
+                    for (let line of songLines) {
+                        let result = line.replace(/\[(.*?)\]/g, "<span>[$1]</span>");
+                        songHTML += `<p>${result}</p>`;
+                        text += `<p>${line}</p>`;
+                    }
+                    document.getElementById('songContainer').innerHTML = songHTML;
+                    document.getElementById('text').innerHTML = text;
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+
+        }
+
+        const transposeChord = (str, direction = -1) => {
+            const chords = str.match(/\[.*?\]/g);
+
+            if (!chords) {
+                return str;
+            }
+
+            const transposedChords = chords.map(chord => {
+                const root = chord.slice(1, -1);
+                const index = "C C# D D# E F F# G G# A A# B".split(" ").indexOf(root);
+                const transposedIndex = (index + direction + 12) % 12;
+                return `[${"C C# D D# E F F# G G# A A# B".split(" ")[transposedIndex]}]`;
+            });
+
+            return chords.reduce((acc, chord, i) => {
+                return acc.replace(chord, transposedChords[i]);
+            }, str);
+        };
+
+        document.querySelector("form").addEventListener("submit", function (event) {
+            event.preventDefault();
+            nOfTranspose = 1
+            let form = document.getElementById("title");
+            let inputValue = form.value;
+            runService(inputValue)
+        });
+
+        document.querySelector("#tUp").addEventListener("click", function () {
+            let songHTML = '';
+            for (let line of song) {
+                let result = transposeChord(line, nOfTranspose)
+                result = result.replace(/\[(.*?)\]/g, "<span class='transposed'>[$1]</span>");
+                songHTML += `<p>${result}</p>`;
+            }
+
+            document.getElementById('songContainer').innerHTML = songHTML;
+            nOfTranspose += 1;
+        })
+
+        document.querySelector("#tDown").addEventListener("click", function () {
+            let songHTML = '';
+            for (let line of song) {
+                let result = transposeChord(line, nOfTranspose)
+                result = result.replace(/\[(.*?)\]/g, "<span class='transposed'>[$1]</span>");
+                songHTML += `<p>${result}</p>`;
+            }
+
+            document.getElementById('songContainer').innerHTML = songHTML;
+            nOfTranspose -= 1;
+        })
+    // runService()
+    </script>
+</body>
+
+</html>
